@@ -106,67 +106,51 @@ class TIMER
 CWinApp theApp;
 
 using namespace std;
-
-
-CImage* Copy(CImage *source)
-{
-	CImage *dest = new CImage;
-	dest -> Create(source -> GetWidth(), source -> GetHeight(), source -> GetBPP());
-	source -> Draw(dest -> GetDC(), 0, 0, dest -> GetWidth(), dest -> GetHeight(), 0, 0, source -> GetWidth(), source -> GetHeight());
-	dest -> ReleaseDC();
-	return dest;
-}
-
-CImage* Brighten(CImage *i)
-{
-	CImage *dest = Copy(i);
-
-	int width = dest -> GetWidth();
-	int height = dest -> GetHeight();
-
-	for (int y = 0; y < height; y++)
-	{
-		for (int x = 0; x < width; x++)
-		{
-			COLORREF pixel = dest -> GetPixel(x, y);
-
-			BYTE r = GetRValue(pixel);
-			BYTE g = GetGValue(pixel);
-			BYTE b = GetBValue(pixel);
-
-			if ((r + 10) > 255) r = 255; else r += 10;
-			if ((g + 10) > 255) g = 255; else g += 10;
-			if ((b + 10) > 255) b = 255; else b += 10;
-
-			pixel = RGB(r, g, b);
-
-			dest -> SetPixel(x, y, pixel);
-		}
-	}
-
-	return dest;
-}
-
-using namespace std;
 using namespace cv;
 
-void processImage(string imagename) {
+void __fastcall processImage(string imagename) {
+	/*
+		Load image from file
+		---------------------------
+		Desc:
+	*/
 	Mat img = imread(imagename + ".JPG", CV_LOAD_IMAGE_COLOR);
+	
+	/*
+		Resize the image to half of the original
+		---------------------------
+		Desc:
+	*/
+	Size size(img.cols/2, img.rows/2);
+	resize(img, img, size); //INTER_LINEAR by default
 
-	int height = img.rows / 2;
-	int width = img.cols / 2;
-
-	Size size(width / 2, height / 2);
-	// resize
-	resize(img, img, size);
-	// greyscale
+	/*
+		Convert the colour of the image to greyscale
+		---------------------------
+		Desc:
+	*/
 	cvtColor(img, img, CV_RGB2GRAY);
-	// brighten
+	
+	/*
+		Brighten the image
+		---------------------------
+		Desc:
+	*/
 	img = img + cv::Scalar(10, 10, 10);
-	// rotate
+	
+	/*
+		Rotate the image 90 degrees clockwise
+		---------------------------
+		Desc:
+	*/
 	transpose(img, img);
 	flip(img, img, 1);
-	// save
+	
+	/*
+		Write the image to file
+		---------------------------
+		Desc:
+	*/
 	imwrite(imagename + ".PNG", img);
 }
 
@@ -190,9 +174,18 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		// Process the images...   // Put your code here...
 		vector<thread> threads;
 
-		for (int i(1); i <= 12; ++i) {
-			threads.push_back(thread(processImage, "IMG_"+to_string(i)));
-		}
+		threads.push_back(thread(processImage, "IMG_1"));
+		threads.push_back(thread(processImage, "IMG_2"));
+		threads.push_back(thread(processImage, "IMG_3"));
+		threads.push_back(thread(processImage, "IMG_4"));
+		threads.push_back(thread(processImage, "IMG_5"));
+		threads.push_back(thread(processImage, "IMG_6"));
+		threads.push_back(thread(processImage, "IMG_7"));
+		threads.push_back(thread(processImage, "IMG_8"));
+		threads.push_back(thread(processImage, "IMG_9"));
+		threads.push_back(thread(processImage, "IMG_10"));
+		threads.push_back(thread(processImage, "IMG_11"));
+		threads.push_back(thread(processImage, "IMG_12"));
 
 		for (auto& thread : threads){
 			thread.join();
