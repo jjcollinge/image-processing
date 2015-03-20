@@ -108,49 +108,27 @@ CWinApp theApp;
 using namespace std;
 using namespace cv;
 
-void __fastcall processImage(string imagename) {
-	/*
-		Load image from file
-		---------------------------
-		Desc:
-	*/
-	Mat img = imread(imagename + ".JPG", CV_LOAD_IMAGE_COLOR);
+void __fastcall processImage(const string& imagename) {
 	
-	/*
-		Resize the image to half of the original
-		---------------------------
-		Desc:
-	*/
-	Size size(img.cols/2, img.rows/2);
-	resize(img, img, size); //INTER_LINEAR by default
+	// Load image from file
+	//Mat img = imread(imagename + ".JPG", CV_LOAD_IMAGE_COLOR);
+	Mat img = imread(imagename + ".JPG", IMREAD_GRAYSCALE);
 
-	/*
-		Convert the colour of the image to greyscale
-		---------------------------
-		Desc:
-	*/
-	cvtColor(img, img, CV_RGB2GRAY);
-	
-	/*
-		Brighten the image
-		---------------------------
-		Desc:
-	*/
+	// Resize the image
+	Size size(img.cols/2, img.rows/2);
+	resize(img, img, size); //INTER_LINEAR (bilinear) by default
+
+	// Make the image grayscale
+	//cvtColor(img, img, CV_RGB2GRAY);
+
+	// Brighten the image
 	img = img + cv::Scalar(10, 10, 10);
-	
-	/*
-		Rotate the image 90 degrees clockwise
-		---------------------------
-		Desc:
-	*/
+
+	// Rotate the image 90 degrees clockwise
 	transpose(img, img);
 	flip(img, img, 1);
 	
-	/*
-		Write the image to file
-		---------------------------
-		Desc:
-	*/
+	// Write the image to file
 	imwrite(imagename + ".PNG", img);
 }
 
@@ -174,6 +152,11 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		// Process the images...   // Put your code here...
 		vector<thread> threads;
 
+		/* [original loop]
+		for (int i(1); i <= 12; ++i) {
+			threads.push_back(thread(processImage, "IMG_"+to_string(i)));
+		}
+		   [unrolled loop] */
 		threads.push_back(thread(processImage, "IMG_1"));
 		threads.push_back(thread(processImage, "IMG_2"));
 		threads.push_back(thread(processImage, "IMG_3"));
@@ -187,6 +170,7 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		threads.push_back(thread(processImage, "IMG_11"));
 		threads.push_back(thread(processImage, "IMG_12"));
 
+		// join threads to master thread
 		for (auto& thread : threads){
 			thread.join();
 		}
