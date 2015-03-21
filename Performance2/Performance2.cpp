@@ -9,6 +9,7 @@
 #include <iostream>
 #include <thread>
 #include <vector>
+#include <mutex>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -108,25 +109,60 @@ CWinApp theApp;
 using namespace std;
 using namespace cv;
 
+/*!
+	Resize the image to 50% of the original size.
+	Use bilinear interp to resample for a better result.
+*/
+inline void resize(Mat& img) {
+	Size size(img.cols / 2, img.rows / 2);	// Define the desired size
+	resize(img, img, size);					// Perform the resize (Note: INTER_LINEAR (bilinear interp) by default)
+}
+
+/*!
+	Brighten the image by +10 across all channels.
+*/
+inline void brighten(Mat& img) {
+	img = img + cv::Scalar(10, 10, 10);		// Add a scalar value of 10 to each colour (RGB) channel
+}
+
+/*!
+	Rotate the image by 90 degrees clockwise.
+*/
+inline void rotate(Mat& img) {
+	transpose(img, img);					// Perform a transpose matrix transformation
+	flip(img, img, 1);						// Reverse the image pixels horizontally
+}
+
+/*!
+	Convert the image to grayscale
+*/
+inline void grayscale(Mat& img) {
+	cvtColor(img, img, COLOR_RGB2GRAY);
+}
+
+/*!
+	Function to wrap desired image processing procedures.
+	This function will be executed in its own thread.
+	Performs the tasks in a particular order to optimise
+	performance.
+		1. Load the image
+		(2 or 3). Resize the image to make subsequent transformations faster
+		(2 or 3). Convert to greyscale to reduce to a single channel
+		4. Brighten the image
+		5. Rotate the image
+		6. Save the image
+*/
 void __fastcall processImage(const string& imagename) {
 	
 	// Load image from file
-	//Mat img = imread(imagename + ".JPG", CV_LOAD_IMAGE_COLOR);
-	Mat img = imread(imagename + ".JPG", IMREAD_GRAYSCALE);
+	// Mat img = imread(imagename + ".JPG", CV_LOAD_IMAGE_COLOR);	// Load image with full colour profile
+	Mat img = imread(imagename + ".JPG", IMREAD_GRAYSCALE);			// Load image with grayscale colour profile
 
-	// Resize the image
-	Size size(img.cols/2, img.rows/2);
-	resize(img, img, size); //INTER_LINEAR (bilinear) by default
-
-	// Make the image grayscale
-	//cvtColor(img, img, CV_RGB2GRAY);
-
-	// Brighten the image
-	img = img + cv::Scalar(10, 10, 10);
-
-	// Rotate the image 90 degrees clockwise
-	transpose(img, img);
-	flip(img, img, 1);
+	// Perform image transformations...
+	resize(img);
+	//grayscale(img);
+	brighten(img);
+	rotate(img);
 	
 	// Write the image to file
 	imwrite(imagename + ".PNG", img);
@@ -150,13 +186,18 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		TIMER start;	// DO NOT CHANGE THIS LINE
 
 		// Process the images...   // Put your code here...
+
+		/*!
+			This program uses the OpenCV 3.0 beta library.
+			As it is a beta there are known bugs which cause
+			it to occassionally crash.
+			Please run in Release x64 configuration to use
+			the correct libs.
+		*/
+
 		vector<thread> threads;
 
-		/* [original loop]
-		for (int i(1); i <= 12; ++i) {
-			threads.push_back(thread(processImage, "IMG_"+to_string(i)));
-		}
-		   [unrolled loop] */
+		// Create a thread for each image and add it to the vector of threads.
 		threads.push_back(thread(processImage, "IMG_1"));
 		threads.push_back(thread(processImage, "IMG_2"));
 		threads.push_back(thread(processImage, "IMG_3"));
@@ -170,7 +211,7 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		threads.push_back(thread(processImage, "IMG_11"));
 		threads.push_back(thread(processImage, "IMG_12"));
 
-		// join threads to master thread
+		// Join threads to master thread
 		for (auto& thread : threads){
 			thread.join();
 		}
