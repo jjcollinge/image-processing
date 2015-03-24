@@ -9,6 +9,7 @@
 #include <iostream>
 #include <thread>
 #include <vector>
+#include <ppl.h>
 #include <mutex>
 
 #ifdef _DEBUG
@@ -158,6 +159,8 @@ void __fastcall processImage(const string& imagename) {
 	// Mat img = imread(imagename + ".JPG", CV_LOAD_IMAGE_COLOR);	// Load image with full colour profile
 	Mat img = imread(imagename + ".JPG", IMREAD_GRAYSCALE);			// Load image with grayscale colour profile
 
+	// Not ran in threads as order is important
+
 	// Perform image transformations...
 	resize(img);
 	//grayscale(img);
@@ -196,25 +199,21 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		*/
 
 		vector<thread> threads;
+		std::mutex guard;
 
 		// Create a thread for each image and add it to the vector of threads.
-		threads.push_back(thread(processImage, "IMG_1"));
-		threads.push_back(thread(processImage, "IMG_2"));
-		threads.push_back(thread(processImage, "IMG_3"));
-		threads.push_back(thread(processImage, "IMG_4"));
-		threads.push_back(thread(processImage, "IMG_5"));
-		threads.push_back(thread(processImage, "IMG_6"));
-		threads.push_back(thread(processImage, "IMG_7"));
-		threads.push_back(thread(processImage, "IMG_8"));
-		threads.push_back(thread(processImage, "IMG_9"));
-		threads.push_back(thread(processImage, "IMG_10"));
-		threads.push_back(thread(processImage, "IMG_11"));
-		threads.push_back(thread(processImage, "IMG_12"));
+		concurrency::parallel_for(1, 12,[&](size_t i)
+		{
+			guard.lock();
+			threads.push_back(thread(processImage, "IMG_"+to_string(i)));
+			guard.unlock();
+		});
 
 		// Join threads to master thread
-		for (auto& thread : threads){
-			thread.join();
-		}
+		concurrency::parallel_for_each(threads.begin(), threads.end(), [](vector<thread>::value_type& t)
+		{
+			t.join();
+		});
 
 		// How long did it take?...   DO NOT CHANGE FROM HERE...
 		
