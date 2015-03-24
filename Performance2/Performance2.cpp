@@ -110,6 +110,8 @@ CWinApp theApp;
 using namespace std;
 using namespace cv;
 
+std::mutex mutex;
+
 /*!
 	Resize the image to 50% of the original size.
 	Use bilinear interp to resample for a better result.
@@ -147,29 +149,18 @@ inline void grayscale(Mat& img) {
 	This function will be executed in its own thread.
 	Performs the tasks in a particular order to optimise
 	performance.
-		1. Load the image
-		(2 or 3). Resize the image to make subsequent transformations faster
-		(2 or 3). Convert to greyscale to reduce to a single channel
-		4. Brighten the image
-		5. Rotate the image
-		6. Save the image
 */
-void __fastcall processImage(Mat& img, const string& pathname) {
-	
-	// Load image from file
-	// Mat img = imread(imagename + ".JPG", CV_LOAD_IMAGE_COLOR);	// Load image with full colour profile
-	//Mat img = imread(imagename + ".JPG", IMREAD_GRAYSCALE);			// Load image with grayscale colour profile
-
-	// Not ran in threads as order is important
+void __fastcall processImage(Mat& image, const string& pathname) {
 
 	// Perform image transformations...
-	resize(img);
+
+	resize(image);
 	//grayscale(img);
-	brighten(img);
-	rotate(img);
-	
+	brighten(image);
+	rotate(image);
+
 	// Write the image to file
-	imwrite(pathname + ".PNG", img);
+	imwrite(pathname + ".PNG", image);
 }
 
 int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
@@ -191,44 +182,27 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 
 		// Process the images...   // Put your code here...
 
-		/*!
+		/*
+		==========================================================
 			This program uses the OpenCV 3.0 beta library.
 			Please run in Release x64 configuration to use
 			the correct libs.
+		==========================================================
 		*/
 
 		vector<thread> threads;
 
-		/* Concurrent version */
-		/*std::mutex guard;
-
-		// Create a thread for each image and add it to the vector of threads.
-		concurrency::parallel_for(1, 12,[&](size_t i)
-		{
-			guard.lock();
-			auto pathname = "IMG_" + to_string(i) + ".JPG";
-			threads.push_back(thread(processImage, imread(pathname, IMREAD_GRAYSCALE), pathname));
-			guard.unlock();
-		});
-
-		// Join process threads to master thread
-		concurrency::parallel_for_each(threads.begin(), threads.end(), [](vector<thread>::value_type& t) {
-			t.join();
-		});*/
-
-		/* Sequential version */
-
 		// Create a thread for each image and add it to the vector of threads.
 		for (int i(1); i <= 12; ++i) {
-			auto pathname = "IMG_" + to_string(i) + ".JPG";
-			threads.push_back(thread(processImage, imread(pathname, IMREAD_GRAYSCALE), pathname));
+			const auto path = "IMG_" + to_string(i);
+			threads.push_back(thread(processImage, imread(path + ".JPG", IMREAD_GRAYSCALE), path));
 		}
 
-		// Join process threads to master thread
+		// Join threads to master thread
 		for (auto& thread : threads) {
 			thread.join();
 		}
-		
+
 		// How long did it take?...   DO NOT CHANGE FROM HERE...
 		
 		TIMER end;
