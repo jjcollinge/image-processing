@@ -154,11 +154,11 @@ inline void grayscale(Mat& img) {
 		5. Rotate the image
 		6. Save the image
 */
-void __fastcall processImage(const string& imagename) {
+void __fastcall processImage(Mat& img, const string& pathname) {
 	
 	// Load image from file
 	// Mat img = imread(imagename + ".JPG", CV_LOAD_IMAGE_COLOR);	// Load image with full colour profile
-	Mat img = imread(imagename + ".JPG", IMREAD_GRAYSCALE);			// Load image with grayscale colour profile
+	//Mat img = imread(imagename + ".JPG", IMREAD_GRAYSCALE);			// Load image with grayscale colour profile
 
 	// Not ran in threads as order is important
 
@@ -169,7 +169,7 @@ void __fastcall processImage(const string& imagename) {
 	rotate(img);
 	
 	// Write the image to file
-	imwrite(imagename + ".PNG", img);
+	imwrite(pathname + ".PNG", img);
 }
 
 int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
@@ -198,22 +198,37 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 		*/
 
 		vector<thread> threads;
-		std::mutex guard;
+
+		/* Concurrent version */
+		/*std::mutex guard;
 
 		// Create a thread for each image and add it to the vector of threads.
 		concurrency::parallel_for(1, 12,[&](size_t i)
 		{
 			guard.lock();
-			threads.push_back(thread(processImage, "IMG_"+to_string(i)));
+			auto pathname = "IMG_" + to_string(i) + ".JPG";
+			threads.push_back(thread(processImage, imread(pathname, IMREAD_GRAYSCALE), pathname));
 			guard.unlock();
 		});
 
-		// Join threads to master thread
-		concurrency::parallel_for_each(threads.begin(), threads.end(), [](vector<thread>::value_type& t)
-		{
+		// Join process threads to master thread
+		concurrency::parallel_for_each(threads.begin(), threads.end(), [](vector<thread>::value_type& t) {
 			t.join();
-		});
+		});*/
 
+		/* Sequential version */
+
+		// Create a thread for each image and add it to the vector of threads.
+		for (int i(1); i <= 12; ++i) {
+			auto pathname = "IMG_" + to_string(i) + ".JPG";
+			threads.push_back(thread(processImage, imread(pathname, IMREAD_GRAYSCALE), pathname));
+		}
+
+		// Join process threads to master thread
+		for (auto& thread : threads) {
+			thread.join();
+		}
+		
 		// How long did it take?...   DO NOT CHANGE FROM HERE...
 		
 		TIMER end;
