@@ -123,15 +123,16 @@ inline void resize(Mat& img) {
 	Brighten the image by +10 across all channels.
 */
 inline void brighten(Mat& img) {
-	img = img + cv::Scalar(10, 10, 10);		// Add a scalar value of 10 to each colour (RGB) channel
+	img += 10; // Add 10 to single channel grayscale image
+	//img = img cv::Scalar(10, 10, 10); // Add a scalar value of 10 to each colour (RGB) channel
 }
 
 /*!
 	Rotate the image by 90 degrees clockwise.
 */
 inline void rotate(Mat& img) {
-	transpose(img, img);					// Perform a transpose matrix transformation
-	flip(img, img, 1);						// Reverse the image pixels horizontally
+	transpose(img, img); // Perform a transpose matrix transformation
+	flip(img, img, 1); // Reverse the image pixels horizontally
 }
 
 /*!
@@ -192,8 +193,6 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 
 		/*!
 			This program uses the OpenCV 3.0 beta library.
-			As it is a beta there are known bugs which cause
-			it to occassionally crash.
 			Please run in Release x64 configuration to use
 			the correct libs.
 		*/
