@@ -110,8 +110,6 @@ CWinApp theApp;
 using namespace std;
 using namespace cv;
 
-std::mutex mutex;
-
 /*!
 	Resize the image to 50% of the original size.
 	Use bilinear interp to resample for a better result.
@@ -149,18 +147,23 @@ inline void grayscale(Mat& img) {
 	This function will be executed in its own thread.
 	Performs the tasks in a particular order to optimise
 	performance.
+		1. Load the image
+		(2 or 3). Resize the image to make subsequent transformations faster
+		(2 or 3). Convert to greyscale to reduce to a single channel
+		4. Brighten the image
+		5. Rotate the image
+		6. Save the image
 */
-void __fastcall processImage(Mat& image, const string& pathname) {
-
+void __fastcall processImage(Mat& image, const string& path) {
+	
 	// Perform image transformations...
-
 	resize(image);
 	//grayscale(img);
 	brighten(image);
 	rotate(image);
-
+	
 	// Write the image to file
-	imwrite(pathname + ".PNG", image);
+	imwrite(path + ".PNG", image);
 }
 
 int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
@@ -182,23 +185,21 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 
 		// Process the images...   // Put your code here...
 
-		/*
-		==========================================================
+		/*!
 			This program uses the OpenCV 3.0 beta library.
 			Please run in Release x64 configuration to use
 			the correct libs.
-		==========================================================
 		*/
 
 		vector<thread> threads;
 
 		// Create a thread for each image and add it to the vector of threads.
 		for (int i(1); i <= 12; ++i) {
-			const auto path = "IMG_" + to_string(i);
-			threads.push_back(thread(processImage, imread(path + ".JPG", IMREAD_GRAYSCALE), path));
-		}
+			const string path = "IMG_" + to_string(i);
+			threads.push_back(thread(processImage, imread(path + ".JPG", IMREAD_GRAYSCALE), path)); // use CV_LOAD_IMAGE_COLOR for full colour profile
+		};
 
-		// Join threads to master thread
+		// Join the threads to master thread
 		for (auto& thread : threads) {
 			thread.join();
 		}
