@@ -3,8 +3,9 @@
 
 #include "stdafx.h"
 #include "Performance2.h"
-#include "opencv2/highgui/highgui.hpp"
-#include <opencv2/imgproc/imgproc.hpp>
+//#include "opencv2/highgui/highgui.hpp"
+#include <opencv2/opencv.hpp>
+//#include <opencv2/imgproc/imgproc.hpp>
 
 #include <iostream>
 #include <thread>
@@ -110,7 +111,7 @@ CWinApp theApp;
 using namespace std;
 using namespace cv;
 
-/*!
+/*
 	Resize the image to 50% of the original size.
 	Use bilinear interp to resample for a better result.
 */
@@ -119,15 +120,15 @@ inline void resize(Mat& img) {
 	resize(img, img, size);					// Perform the resize (Note: INTER_LINEAR (bilinear interp) by default)
 }
 
-/*!
+/*
 	Brighten the image by +10 across all channels.
 */
 inline void brighten(Mat& img) {
-	img += 10; // Add 10 to single channel grayscale image
+	img += 10; // Add 10 to single channel greyscale image
 	//img = img cv::Scalar(10, 10, 10); // Add a scalar value of 10 to each colour (RGB) channel
 }
 
-/*!
+/*
 	Rotate the image by 90 degrees clockwise.
 */
 inline void rotate(Mat& img) {
@@ -135,14 +136,14 @@ inline void rotate(Mat& img) {
 	flip(img, img, 1); // Reverse the image pixels horizontally
 }
 
-/*!
-	Convert the image to grayscale
+/*
+	Convert the image to greyscale
 */
-inline void grayscale(Mat& img) {
+inline void greyscale(Mat& img) {
 	cvtColor(img, img, COLOR_RGB2GRAY);
 }
 
-/*!
+/*
 	Function to wrap desired image processing procedures.
 	This function will be executed in its own thread.
 	Performs the tasks in a particular order to optimise
@@ -154,16 +155,19 @@ inline void grayscale(Mat& img) {
 		5. Rotate the image
 		6. Save the image
 */
-void __fastcall processImage(Mat& image, const string& path) {
+void __fastcall processImage(const string& path) {
 	
+	// Load the image
+	Mat image = imread(path + ".JPG", IMREAD_GRAYSCALE); // use CV_LOAD_IMAGE_COLOR for full colour profile
+
 	// Perform image transformations...
 	resize(image);
-	//grayscale(img);
+	//greyscale(img); // Not needed as image RGB not loaded initially
 	brighten(image);
 	rotate(image);
-	
-	// Write the image to file
-	imwrite(path + ".PNG", image);
+
+	// Save the image
+	imwrite(path + ".PNG", image);	// Write image to file
 }
 
 int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
@@ -185,18 +189,41 @@ int _tmain(int argc, TCHAR* argv[], TCHAR* envp[])
 
 		// Process the images...   // Put your code here...
 
-		/*!
+		/*
+			NOTE:
+			===============================================
+
 			This program uses the OpenCV 3.0 beta library.
+			Source: http://opencv.org/
+
 			Please run in Release x64 configuration to use
-			the correct libs.
+			the correct libs. The 'GPU Only' configuration
+			appears to perform fastest on my pc and the uni
+			pcs. Please select the most appropriate for your
+			machine
+			
+			Run once prior to testing to allow symbols 
+			to be loaded from DLLs.
+
+			Application may print 'Failed to load OpenCL'
+			This is handled by the library and will
+			continue to work as expected
+
 		*/
 
+		/* Hold a reference to each thread in a vector to
+		ensure they are joined before termination */
 		vector<thread> threads;
+		const int NUM_IMAGES = 12;
+		const int FIRST_IMAGE_NUM = 1;
 
-		// Create a thread for each image and add it to the vector of threads.
-		for (int i(1); i <= 12; ++i) {
+		// Sequentially loop through the image numbers
+		for (int i(FIRST_IMAGE_NUM); i <= NUM_IMAGES; ++i) {
+			// Compose image filename (without extension)
 			const string path = "IMG_" + to_string(i);
-			threads.push_back(thread(processImage, imread(path + ".JPG", IMREAD_GRAYSCALE), path)); // use CV_LOAD_IMAGE_COLOR for full colour profile
+			/* Create and store a new thread to process this
+			   Image independently of the master thread */
+			threads.push_back(thread(processImage, path));
 		};
 
 		// Join the threads to master thread
